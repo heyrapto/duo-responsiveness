@@ -1,14 +1,3 @@
-/**
- * DeviceFrame — renders the physical iPhone Duo shell.
- *
- * Designed to exactly replicate the clean, minimal aesthetic from the reference:
- *  - Thick outer graphite/gray border
- *  - Thick black inner bezel
- *  - No buttons, nubs, or tabs (pure clean frame)
- *  - Single mode: front camera hole in top right
- *  - Extended mode: subtle vertical hinge crease down the center
- */
-
 import type { ReactNode } from 'react';
 import { DEVICE, type DisplayMode, getDeviceDimensions } from '@/lib/devices';
 

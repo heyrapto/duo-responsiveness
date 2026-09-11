@@ -1,18 +1,5 @@
 'use client';
 
-/**
- * Simulator — manages display mode, auto-scaling, iframe lifecycle,
- * and the premium flip-open / fold-closed transition animation.
- *
- * ─── Animation design ──────────────────────────────────────────────────────
- *
- *   0 ms  → Phase "in": device tilts (rotateY ±16°), glass overlay fades in.
- *  280 ms → Mode switch (hidden by glass): layout changes, rotation mirror-jumps,
- *            hinge gleam fires.
- *  290 ms → Phase "out": glass lifts, tilt settles, new orientation revealed.
- *  680 ms → Idle.
- */
-
 import {
   useState,
   useRef,
@@ -122,16 +109,20 @@ export default function Simulator({ url }: SimulatorProps) {
     return () => ro.disconnect();
   }, [dims.totalWidth, dims.totalHeight]);
 
+  const [useProxy, setUseProxy] = useState(false);
+
   // ── Reset error and trigger loading on URL / key change ────────────────
   useEffect(() => {
     setEmbedError(false);
     setIsUrlLoading(true);
+    setUseProxy(false);
     let active = true;
 
     checkEmbeddable(url).then((canEmbed) => {
       if (!active) return;
       if (!canEmbed) {
-        handleEmbedFailure();
+        // Site blocks iframes. Route it through our server-side proxy!
+        setUseProxy(true);
       }
     });
 
@@ -271,7 +262,7 @@ export default function Simulator({ url }: SimulatorProps) {
           className="flex items-center justify-center w-8 h-8 shrink-0 rounded-lg text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 transition-colors"
           title="Back to home"
         >
-          <BackIcon />
+          <FiArrowLeft aria-hidden />
         </Link>
 
         {/* Editable URL bar */}
@@ -302,7 +293,7 @@ export default function Simulator({ url }: SimulatorProps) {
               className="flex items-center gap-1.5 w-full h-8 px-3 rounded-lg bg-zinc-100 hover:bg-zinc-200 transition-colors text-left group"
               title="Click to change URL"
             >
-              <GlobeIcon />
+              <FiGlobe className="shrink-0 text-zinc-400" aria-hidden />
               <span className="text-xs text-zinc-600 truncate font-mono leading-none group-hover:text-zinc-900 transition-colors">
                 {displayUrl(url).toLowerCase()}
               </span>
@@ -324,7 +315,7 @@ export default function Simulator({ url }: SimulatorProps) {
           className="flex items-center justify-center w-8 h-8 shrink-0 rounded-lg text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 transition-colors"
           title="Refresh"
         >
-          <RefreshIcon />
+          <FiRefreshCw aria-hidden />
         </button>
       </div>
 
@@ -369,10 +360,11 @@ export default function Simulator({ url }: SimulatorProps) {
                 <iframe
                   key={iframeKey}
                   ref={iframeRef}
-                  src={url}
+                  src={useProxy ? `/api/proxy?url=${encodeURIComponent(url)}` : url}
                   onLoad={handleLoad}
                   onError={handleEmbedFailure}
                   title="Website Preview"
+                  sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
                   style={{
                     width: dims.viewportWidth,
                     height: dims.viewportHeight,
@@ -481,16 +473,4 @@ export default function Simulator({ url }: SimulatorProps) {
       )}
     </div>
   );
-}
-
-function BackIcon() {
-  return <FiArrowLeft aria-hidden />;
-}
-
-function GlobeIcon() {
-  return <FiGlobe className="shrink-0 text-zinc-400" aria-hidden />;
-}
-
-function RefreshIcon() {
-  return <FiRefreshCw aria-hidden />;
 }
