@@ -1,10 +1,5 @@
-import type { ReactNode } from 'react';
-import { DEVICE, type DisplayMode, getDeviceDimensions } from '@/lib/devices';
-
-interface DeviceFrameProps {
-  mode: DisplayMode;
-  children: ReactNode;
-}
+import { DEVICE, getDeviceDimensions } from '@/lib/devices';
+import type { DeviceFrameProps } from '@/lib/types';
 
 export default function DeviceFrame({ mode, children }: DeviceFrameProps) {
   const d = DEVICE;
@@ -17,17 +12,14 @@ export default function DeviceFrame({ mode, children }: DeviceFrameProps) {
         position: 'relative',
         width: dims.totalWidth,
         height: dims.totalHeight,
-        // The inner black bezel
         background: '#111112',
         borderRadius: d.outerRadius,
-        // The outer graphite/gray metal border + shadow
         boxSizing: 'content-box',
         border: '4px solid #4a4a4d',
         boxShadow: '0 40px 100px rgba(0,0,0,0.4), 0 14px 40px rgba(0,0,0,0.2)',
         flexShrink: 0,
       }}
     >
-      {/* ── Single Mode: Front Camera Hole ────────────────────────────────── */}
       {isSingle && (
         <div
           aria-hidden
@@ -45,7 +37,6 @@ export default function DeviceFrame({ mode, children }: DeviceFrameProps) {
         />
       )}
 
-      {/* ── Screen ───────────────────────────────────────────────────────── */}
       <div
         style={{
           position: 'absolute',

@@ -9,16 +9,13 @@ export default async function TestPage({
   const params = await searchParams;
   const rawUrl = Array.isArray(params.url) ? params.url[0] : params.url;
 
-  // Guard: if no URL was provided, send the user back to the homepage.
   if (!rawUrl) {
     redirect('/');
   }
 
   return (
-    // flex-1 lets this page fill the full remaining body height from the
-    // root layout so the Simulator can use 100% of the viewport.
     <div className="flex flex-col flex-1 min-h-0">
-      <Simulator url={rawUrl} />
+      <Simulator key={rawUrl} url={rawUrl} />
     </div>
   );
 }

@@ -2,14 +2,13 @@ import { FaGithub, FaLinkedin, FaXTwitter } from 'react-icons/fa6';
 import { MdOutlineEmail } from 'react-icons/md';
 import { IoInformationCircleOutline } from 'react-icons/io5';
 import { HiArrowUpRight } from 'react-icons/hi2';
-import { FaEnvelope } from 'react-icons/fa';
+import Image from 'next/image';
 
 export default function Footer() {
   return (
     <footer className="w-full bg-zinc-50 border-t border-zinc-200 mt-auto">
       <div className="max-w-6xl mx-auto px-6 py-12 flex flex-col md:flex-row gap-16 md:gap-12">
         
-        {/* Contact Section */}
         <div className="flex-1 space-y-6">
           <div className="flex items-center gap-2 text-zinc-800 font-semibold text-lg pb-4 border-b border-zinc-200/70">
             <MdOutlineEmail className="text-zinc-400 text-xl" />
@@ -21,8 +20,8 @@ export default function Footer() {
           </p>
 
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-full bg-zinc-200 overflow-hidden flex-shrink-0 shadow-inner">
-              <img src="/me.webp" alt="Caleb Kalejaiye" className="w-full h-full object-cover" />
+            <div className="w-16 h-16 rounded-full bg-zinc-200 overflow-hidden shrink-0 shadow-inner">
+              <Image src="/me.webp" alt="Caleb Kalejaiye" width={64} height={64} className="w-full h-full object-cover" />
             </div>
             <div>
               <h3 className="font-semibold text-zinc-900 text-base flex flex-wrap items-center gap-2">
@@ -49,7 +48,6 @@ export default function Footer() {
           </div>
         </div>
 
-        {/* About Section */}
         <div className="flex-1 space-y-6">
           <div className="flex items-center gap-2 text-zinc-800 font-semibold text-lg pb-4 border-b border-zinc-200/70">
             <IoInformationCircleOutline className="text-zinc-400 text-xl" />
@@ -69,7 +67,6 @@ export default function Footer() {
 
       </div>
 
-      {/* Sub Footer */}
       <div className="w-full bg-black text-zinc-400 py-5 px-6 text-xs text-center flex flex-col md:flex-row items-center justify-center gap-2">
         <span>version 1.0.0 10/09/2026</span>
         <span className="hidden md:inline">·</span>

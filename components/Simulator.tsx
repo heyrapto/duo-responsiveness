@@ -5,7 +5,6 @@ import {
   useRef,
   useEffect,
   useCallback,
-  type SyntheticEvent,
   type SubmitEvent,
   type KeyboardEvent,
 } from 'react';
@@ -14,45 +13,11 @@ import { useRouter } from 'next/navigation';
 import { FiAlertTriangle, FiArrowLeft, FiGlobe, FiLoader, FiRefreshCw, FiX } from 'react-icons/fi';
 import DeviceFrame from './DeviceFrame';
 import DisplayToggle from './DisplayToggle';
-import { type DisplayMode, getDeviceDimensions } from '@/lib/devices';
+import { getDeviceDimensions } from '@/lib/devices';
+import { ANIM_IDLE } from '@/lib/simulator';
+import { displayUrl, normalizeUrl } from '@/lib/url';
+import type { AnimValues, DisplayMode, SimulatorProps } from '@/lib/types';
 import { checkEmbeddable } from '@/app/actions';
-
-interface SimulatorProps {
-  url: string;
-}
-
-interface AnimValues {
-  rotation: number;
-  rotDuration: number;
-  glassOpacity: number;
-  glassDuration: number;
-  scaleFactor: number;
-  scaleDuration: number;
-  showGleam: boolean;
-}
-
-const ANIM_IDLE: AnimValues = {
-  rotation: 0,
-  rotDuration: 0,
-  glassOpacity: 0,
-  glassDuration: 0,
-  scaleFactor: 1,
-  scaleDuration: 0,
-  showGleam: false,
-};
-
-/** Strip protocol + trailing slash for clean display */
-function displayUrl(raw: string): string {
-  return raw.replace(/^https?:\/\//, '').replace(/\/$/, '');
-}
-
-/** Ensure the URL has a protocol prefix */
-function normalizeUrl(raw: string): string {
-  const s = raw.trim();
-  if (!s) return '';
-  if (/^https?:\/\//i.test(s)) return s;
-  return `https://${s}`;
-}
 
 export default function Simulator({ url }: SimulatorProps) {
   const router = useRouter();
@@ -74,23 +39,16 @@ export default function Simulator({ url }: SimulatorProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const animatingRef = useRef(false);
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
-  const lastSuccessfulUrlRef = useRef<string | null>(null);
+  const loadErrorShownRef = useRef(false);
 
   const dims = getDeviceDimensions(mode);
 
-  // Focus the URL input when entering edit mode
   useEffect(() => {
     if (editingUrl) {
       urlInputRef.current?.select();
     }
   }, [editingUrl]);
 
-  // Keep urlDraft in sync when the url prop changes (e.g. after router.push)
-  useEffect(() => {
-    setUrlDraft(displayUrl(url));
-  }, [url]);
-
-  // ── Auto-scale ──────────────────────────────────────────────────────────
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -109,38 +67,28 @@ export default function Simulator({ url }: SimulatorProps) {
     return () => ro.disconnect();
   }, [dims.totalWidth, dims.totalHeight]);
 
-  const [useProxy, setUseProxy] = useState(false);
+  const handleEmbedFailure = useCallback(() => {
+    if (loadErrorShownRef.current) return;
+    loadErrorShownRef.current = true;
+    setIsUrlLoading(false);
+    setEmbedError(true);
+    setShowLoadError(true);
+  }, []);
 
-  // ── Reset error and trigger loading on URL / key change ────────────────
   useEffect(() => {
-    setEmbedError(false);
-    setIsUrlLoading(true);
-    setUseProxy(false);
     let active = true;
 
     checkEmbeddable(url).then((canEmbed) => {
-      if (!active) return;
-      if (!canEmbed) {
-        // Site blocks iframes. Route it through our server-side proxy!
-        setUseProxy(true);
-      }
+      if (active && !canEmbed) handleEmbedFailure();
     });
 
     return () => {
       active = false;
     };
-  }, [url, iframeKey]);
-
-  // ── Iframe load handler ──────────────────────────────────────────────────
-  const handleEmbedFailure = useCallback(() => {
-    if (showLoadError) return;
-    setIsUrlLoading(false);
-    setEmbedError(true);
-    setShowLoadError(true);
-  }, [showLoadError]);
+  }, [url, iframeKey, handleEmbedFailure]);
 
   const handleLoad = useCallback(() => {
-    if (embedError) return; // already failed the server check
+    if (embedError) return;
     setIsUrlLoading(false);
     const frame = iframeRef.current;
     if (!frame) return;
@@ -156,24 +104,21 @@ export default function Simulator({ url }: SimulatorProps) {
     } catch {
       // SecurityError → cross-origin, loaded fine
     }
-    lastSuccessfulUrlRef.current = url;
     sessionStorage.setItem('duo-last-successful-url', url);
   }, [handleEmbedFailure, url, embedError]);
 
-  // ── Refresh ──────────────────────────────────────────────────────────────
   const handleRefresh = useCallback(() => {
     setIframeKey((k) => k + 1);
     setEmbedError(false);
     setIsUrlLoading(true);
+    loadErrorShownRef.current = false;
   }, []);
 
-  // ── URL bar submission ───────────────────────────────────────────────────
   function submitUrl(raw: string) {
     setEditingUrl(false);
     const normalized = normalizeUrl(raw);
     if (!normalized || normalized === url) return;
     
-    // Instantly show the loader before Next.js begins the router transition
     setIsUrlLoading(true);
     router.push(`/test?url=${encodeURIComponent(normalized)}`);
   }
@@ -190,7 +135,6 @@ export default function Simulator({ url }: SimulatorProps) {
     }
   }
 
-  // ── Flip animation ───────────────────────────────────────────────────────
   function clearTimers() {
     timersRef.current.forEach(clearTimeout);
     timersRef.current = [];
@@ -253,19 +197,15 @@ export default function Simulator({ url }: SimulatorProps) {
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
-      {/* ── Toolbar ───────────────────────────────────────────────────── */}
       <div className="flex items-center gap-2 px-3 py-2 border-b border-zinc-200 bg-white shrink-0">
-
-        {/* Back */}
         <Link
           href="/"
-          className="flex items-center justify-center w-8 h-8 shrink-0 rounded-lg text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 transition-colors"
+          className="flex items-center justify-center w-8 h-8 shrink-0 rounded-lg text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 transition-colors"
           title="Back to home"
         >
           <FiArrowLeft aria-hidden />
         </Link>
 
-        {/* Editable URL bar */}
         <div className="flex-1 min-w-0">
           {editingUrl ? (
             <form onSubmit={handleUrlSubmit} className="w-full">
@@ -277,6 +217,7 @@ export default function Simulator({ url }: SimulatorProps) {
                 onBlur={() => submitUrl(urlDraft)}
                 onKeyDown={handleUrlKeyDown}
                 placeholder="example.com"
+                aria-label="Website URL"
                 autoComplete="off"
                 autoCorrect="off"
                 spellCheck={false}
@@ -301,25 +242,22 @@ export default function Simulator({ url }: SimulatorProps) {
           )}
         </div>
 
-        {/* Display mode toggle */}
         <DisplayToggle
           mode={mode}
           onChange={handleModeChange}
           disabled={isAnimating}
         />
 
-        {/* Refresh */}
         <button
           type="button"
           onClick={handleRefresh}
-          className="flex items-center justify-center w-8 h-8 shrink-0 rounded-lg text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 transition-colors"
+          className="flex items-center justify-center w-8 h-8 shrink-0 rounded-lg text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 transition-colors"
           title="Refresh"
         >
           <FiRefreshCw aria-hidden />
         </button>
       </div>
 
-      {/* ── Preview area ──────────────────────────────────────────────── */}
       <div
         ref={containerRef}
         className="relative flex-1 min-h-0 overflow-hidden bg-zinc-50"
@@ -328,7 +266,6 @@ export default function Simulator({ url }: SimulatorProps) {
           backgroundSize: '24px 24px',
         }}
       >
-        {/* Outer wrapper: centres + auto-scales */}
         <div
           style={{
             position: 'absolute',
@@ -338,7 +275,6 @@ export default function Simulator({ url }: SimulatorProps) {
             transformOrigin: 'center center',
           }}
         >
-          {/* Inner wrapper: animation transforms */}
           <div
             style={{
               transform: `perspective(1400px) rotateY(${anim.rotation}deg) scale(${anim.scaleFactor})`,
@@ -360,7 +296,7 @@ export default function Simulator({ url }: SimulatorProps) {
                 <iframe
                   key={iframeKey}
                   ref={iframeRef}
-                  src={useProxy ? `/api/proxy?url=${encodeURIComponent(url)}` : url}
+                  src={url}
                   onLoad={handleLoad}
                   onError={handleEmbedFailure}
                   title="Website Preview"
@@ -370,14 +306,11 @@ export default function Simulator({ url }: SimulatorProps) {
                     height: dims.viewportHeight,
                     border: 'none',
                     display: 'block',
-                    // Force the embedded site to render in light mode,
-                    // regardless of the OS color-scheme preference.
                     colorScheme: 'light',
                   }}
                 />
               )}
 
-              {/* Frosted-glass overlay during the flip animation */}
               <div
                 aria-hidden
                 style={{
@@ -394,7 +327,6 @@ export default function Simulator({ url }: SimulatorProps) {
                 }}
               />
 
-              {/* Loading overlay for the website */}
               {isUrlLoading && (
                 <div
                   aria-hidden
@@ -414,7 +346,6 @@ export default function Simulator({ url }: SimulatorProps) {
                 </div>
               )}
 
-              {/* Hinge gleam flash at the moment the mode switches */}
               {anim.showGleam && (
                 <div
                   aria-hidden
@@ -443,7 +374,7 @@ export default function Simulator({ url }: SimulatorProps) {
           role="alertdialog"
           aria-modal="true"
           aria-labelledby="load-error-title"
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-zinc-950/35 px-6 backdrop-blur-sm"
+          className="fixed inset-0 z-100 flex items-center justify-center bg-zinc-950/35 px-6 backdrop-blur-sm"
         >
           <div className="relative w-full max-w-sm rounded-2xl bg-white p-6 text-center shadow-2xl">
             <button

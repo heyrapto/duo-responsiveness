@@ -1,13 +1,7 @@
 'use client';
 
-import type { DisplayMode } from '@/lib/devices';
+import type { DisplayToggleProps } from '@/lib/types';
 import { FiColumns, FiSmartphone } from 'react-icons/fi';
-
-interface DisplayToggleProps {
-  mode: DisplayMode;
-  onChange: (mode: DisplayMode) => void;
-  disabled?: boolean;
-}
 
 export default function DisplayToggle({ mode, onChange, disabled }: DisplayToggleProps) {
   return (
@@ -17,7 +11,6 @@ export default function DisplayToggle({ mode, onChange, disabled }: DisplayToggl
       }`}
       title={mode === 'single' ? 'Switch to Extended Display' : 'Switch to Single Display'}
     >
-      {/* Single display — portrait phone icon */}
       <button
         type="button"
         onClick={() => onChange('single')}
@@ -28,12 +21,11 @@ export default function DisplayToggle({ mode, onChange, disabled }: DisplayToggl
           mode === 'single'
             ? 'bg-white text-zinc-900 shadow-sm'
             : 'text-zinc-400 hover:text-zinc-600'
-        }`}
+          } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900`}
       >
         <FiSmartphone aria-hidden />
       </button>
 
-      {/* Extended display — two panels landscape icon */}
       <button
         type="button"
         onClick={() => onChange('extended')}
@@ -44,7 +36,7 @@ export default function DisplayToggle({ mode, onChange, disabled }: DisplayToggl
           mode === 'extended'
             ? 'bg-white text-zinc-900 shadow-sm'
             : 'text-zinc-400 hover:text-zinc-600'
-        }`}
+          } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900`}
       >
         <FiColumns aria-hidden />
       </button>
