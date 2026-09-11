@@ -17,7 +17,7 @@ export default async function TestPage({
   return (
     // flex-1 lets this page fill the full remaining body height from the
     // root layout so the Simulator can use 100% of the viewport.
-    <div className="flex flex-col flex-1">
+    <div className="flex flex-col flex-1 min-h-0">
       <Simulator url={rawUrl} />
     </div>
   );

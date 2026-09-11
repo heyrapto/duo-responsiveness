@@ -1,10 +1,11 @@
 import type { Metadata } from 'next';
-import { Geist, Geist_Mono } from 'next/font/google';
+import { Geist_Mono, Caveat, Poppins } from 'next/font/google';
 import './globals.css';
 
-const geistSans = Geist({
-  variable: '--font-geist-sans',
+const poppins = Poppins({
+  variable: '--font-poppins',
   subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
 });
 
 const geistMono = Geist_Mono({
@@ -12,8 +13,14 @@ const geistMono = Geist_Mono({
   subsets: ['latin'],
 });
 
+const caveat = Caveat({
+  variable: '--font-caveat',
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+});
+
 export const metadata: Metadata = {
-  title: 'Duo Preview — iPhone Duo Responsiveness Tester',
+  title: 'Iphone Duo Preview — iPhone Duo Responsiveness Tester',
   description:
     'Test any website inside a realistic iPhone Duo device frame. Preview in Single or Extended display mode, fully interactive.',
 };
@@ -22,10 +29,11 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${poppins.variable} ${geistMono.variable} ${caveat.variable} h-full antialiased`}
     >
-      {/* min-h-full + flex col lets pages use flex-1 to fill the viewport */}
-      <body className="min-h-full flex flex-col bg-white">{children}</body>
+      <body className="h-full flex flex-col bg-white" style={{ fontFamily: 'var(--font-poppins)' }}>
+        {children}
+      </body>
     </html>
   );
 }

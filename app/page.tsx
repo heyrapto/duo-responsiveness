@@ -62,10 +62,16 @@ export default function Home() {
           </div>
 
           <div className="flex flex-col items-center gap-2">
-            <h1 className="text-2xl font-bold text-zinc-900 tracking-tight">
-              Duo Preview
+            <h1
+              className="text-4xl font-bold text-zinc-900"
+              style={{ fontFamily: 'var(--font-caveat)' }}
+            >
+              Iphone Duo Preview
             </h1>
-            <p className="text-zinc-500 text-base leading-relaxed max-w-sm">
+            <p
+              className="text-zinc-500 text-lg leading-relaxed max-w-sm"
+              style={{ fontFamily: 'var(--font-caveat)' }}
+            >
               Test any website inside a realistic iPhone Duo device frame.
             </p>
           </div>

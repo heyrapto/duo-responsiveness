@@ -1,172 +1,70 @@
 /**
- * DeviceFrame — renders the physical iPhone Duo shell around the website preview.
+ * DeviceFrame — renders the physical iPhone Duo shell.
  *
- * All dimensions are sourced from lib/devices.ts — nothing is hard-coded here.
+ * Geometry derived from the official Apple Store reference diagram:
  *
- * Single mode:  main screen (iframe) + physical hinge + decorative side panel
- * Extended mode: two screens side-by-side; iframe spans full width; hinge overlaid
+ *  Single (5.4" outer cover display, portrait):
+ *    · Thin ~10 px bezel, ALL FOUR corners rounded equally (~18 px)
+ *    · Small connector bracket tabs at the four corners (top/bottom edges)
+ *    · Two hinge nubs protruding from the right edge near top-right and bottom-right
+ *    · Frame colour: graphite (not pure black) — matches premium titanium finish
+ *    · No Dynamic Island (outer cover display)
+ *
+ *  Extended (7.6" inner main display, landscape):
+ *    · Thin ~10 px bezel, all corners uniformly rounded
+ *    · Volume buttons top-right, side button + camera control on right edge
+ *    · Same graphite finish
+ *
+ *  NOTE: This component renders a SINGLE DOM tree so the `children` (iframe)
+ *  are never unmounted when switching modes, preventing the website from reloading!
  */
 
-import type { ReactNode, CSSProperties } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import { DEVICE, type DisplayMode, getDeviceDimensions } from '@/lib/devices';
 
 interface DeviceFrameProps {
   mode: DisplayMode;
-  /** The iframe (or error overlay) rendered inside the screen area */
   children: ReactNode;
 }
 
-// ─── Shared colour palette ─────────────────────────────────────────────────
+// ─── Shared visual tokens ──────────────────────────────────────────────────
 
-const SHELL_BG =
-  'linear-gradient(155deg, #2E3B56 0%, #1D2B46 35%, #141D35 70%, #101729 100%)';
+// Graphite / titanium — rich dark with slight warmth, not pure black
+const SHELL =
+  'linear-gradient(155deg, #3c3c3e 0%, #2c2c2e 30%, #1e1e20 60%, #141416 100%)';
 
-const HINGE_BG =
-  'linear-gradient(90deg, #060A13 0%, #0D1526 50%, #060A13 100%)';
+const SHELL_SHADOW = [
+  'inset 0 1px 0 rgba(255,255,255,0.10)',
+  'inset 0 -1px 0 rgba(0,0,0,0.55)',
+  '0 0 0 1px rgba(0,0,0,0.8)',
+  '0 40px 100px rgba(0,0,0,0.55)',
+  '0 14px 40px rgba(0,0,0,0.35)',
+].join(', ');
 
-const HINGE_HIGHLIGHT: CSSProperties = {
-  position: 'absolute',
-  top: 0,
-  left: '50%',
-  transform: 'translateX(-50%)',
-  width: 1,
-  height: '100%',
-  background:
-    'linear-gradient(180deg, transparent 0%, rgba(255,255,255,0.07) 25%, rgba(255,255,255,0.07) 75%, transparent 100%)',
-};
+// Buttons / nubs are slightly lighter graphite to look like separate metal pieces
+const GRAPHITE_ELEMENT =
+  'linear-gradient(135deg, #3a3a3c 0%, #2c2c2e 50%, #242426 100%)';
 
-// ─── Sub-components ────────────────────────────────────────────────────────
-
-/** The physical hinge strip (single mode — between screen and side panel) */
-function HingeStrip() {
+function Btn({ style, hidden }: { style: CSSProperties; hidden?: boolean }) {
+  if (hidden) return null;
   return (
     <div
       style={{
-        width: DEVICE.hingeWidth,
-        height: DEVICE.screenHeight,
-        flexShrink: 0,
-        background: HINGE_BG,
-        position: 'relative',
+        position: 'absolute',
+        background: GRAPHITE_ELEMENT,
+        ...style,
       }}
-    >
-      <div style={HINGE_HIGHLIGHT} />
-    </div>
+    />
   );
 }
 
-/** Decorative side action panel visible in single display mode */
-function SidePanel() {
-  return (
-    <div
-      style={{
-        width: DEVICE.sidePanelWidth,
-        height: DEVICE.screenHeight,
-        flexShrink: 0,
-        background: 'linear-gradient(180deg, #0C1220 0%, #0E1626 100%)',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        paddingTop: 20,
-        gap: 20,
-        overflow: 'hidden',
-      }}
-    >
-      {/* Camera module */}
-      <div
-        style={{
-          width: 40,
-          height: 40,
-          borderRadius: '50%',
-          background: 'radial-gradient(circle at 38% 38%, #24304A, #080D1A)',
-          boxShadow:
-            'inset 0 0 0 1px rgba(255,255,255,0.09), inset 0 2px 6px rgba(0,0,0,0.7)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        {/* Lens */}
-        <div
-          style={{
-            width: 26,
-            height: 26,
-            borderRadius: '50%',
-            background: 'radial-gradient(circle at 38% 38%, #1A1F30, #04060F)',
-            boxShadow:
-              'inset 0 0 0 1px rgba(255,255,255,0.14), 0 0 0 1px rgba(0,0,0,0.8)',
-          }}
-        />
-      </div>
-
-      {/* Clock */}
-      <span
-        style={{
-          color: '#ffffff',
-          fontSize: 13,
-          fontWeight: 600,
-          fontFamily: 'system-ui, -apple-system, sans-serif',
-          letterSpacing: '-0.03em',
-          lineHeight: 1,
-        }}
-      >
-        9:41
-      </span>
-
-      {/* Signal bars (wifi) */}
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: 3,
-        }}
-      >
-        {[20, 14, 8].map((w, i) => (
-          <div
-            key={i}
-            style={{
-              width: w,
-              height: 2,
-              background: 'rgba(255,255,255,0.4)',
-              borderRadius: 2,
-            }}
-          />
-        ))}
-        <div
-          style={{
-            width: 4,
-            height: 4,
-            borderRadius: '50%',
-            background: 'rgba(255,255,255,0.4)',
-          }}
-        />
-      </div>
-
-      {/* Action icon slots */}
-      {[0, 1, 2].map((i) => (
-        <div
-          key={i}
-          style={{
-            width: 38,
-            height: 38,
-            borderRadius: 11,
-            background: 'rgba(255,255,255,0.05)',
-            border: '1px solid rgba(255,255,255,0.07)',
-          }}
-        />
-      ))}
-    </div>
-  );
-}
-
-// ─── Main component ────────────────────────────────────────────────────────
+// ─── Public component ──────────────────────────────────────────────────────
 
 export default function DeviceFrame({ mode, children }: DeviceFrameProps) {
-  const dims = getDeviceDimensions(mode);
   const d = DEVICE;
-
-  // Inner screen area dimensions (between the bezels)
-  const innerWidth = dims.totalWidth - d.bezelSide * 2;
+  const dims = getDeviceDimensions(mode);
+  const r = 18; // corner radius — ALL four corners rounded equally in both modes
+  const isSingle = mode === 'single';
 
   return (
     <div
@@ -174,152 +72,186 @@ export default function DeviceFrame({ mode, children }: DeviceFrameProps) {
         position: 'relative',
         width: dims.totalWidth,
         height: dims.totalHeight,
-        background: SHELL_BG,
-        borderRadius: d.borderRadius,
-        boxShadow: [
-          'inset 0 1px 0 rgba(255,255,255,0.1)',
-          'inset 0 -1px 0 rgba(0,0,0,0.45)',
-          '0 0 0 1.5px rgba(0,0,0,0.75)',
-          '0 50px 120px rgba(0,0,0,0.6)',
-          '0 20px 50px rgba(0,0,0,0.4)',
-        ].join(', '),
-        // Prevent the device from being selectable/draggable
-        userSelect: 'none',
+        background: SHELL,
+        borderRadius: r,
+        boxShadow: SHELL_SHADOW,
         flexShrink: 0,
+        // userSelect removed to prevent issues with child interactions
       }}
     >
-      {/* ── Left volume buttons ─────────────────────────────────────── */}
-      <PhysicalButton
+      {/* ── Single Mode Buttons & Nubs ──────────────────────────────── */}
+      
+      {/* Left: Volume Up */}
+      <Btn
+        hidden={!isSingle}
         style={{
-          left: -d.volumeButtonWidth,
-          top: 130,
-          width: d.volumeButtonWidth,
-          height: d.volumeButtonHeight,
+          left: -4,
+          top: 120,
+          width: 4,
+          height: 44,
           borderRadius: '2px 0 0 2px',
-          background: 'linear-gradient(90deg, #090D1A 0%, #182036 100%)',
-          boxShadow: '-1px 0 3px rgba(0,0,0,0.6)',
+          boxShadow: '-1px 0 4px rgba(0,0,0,0.5)',
         }}
       />
-      <PhysicalButton
+      {/* Left: Volume Down */}
+      <Btn
+        hidden={!isSingle}
         style={{
-          left: -d.volumeButtonWidth,
-          top: 130 + d.volumeButtonHeight + 14,
-          width: d.volumeButtonWidth,
-          height: d.volumeButtonHeight,
+          left: -4,
+          top: 120 + 44 + 12,
+          width: 4,
+          height: 44,
           borderRadius: '2px 0 0 2px',
-          background: 'linear-gradient(90deg, #090D1A 0%, #182036 100%)',
-          boxShadow: '-1px 0 3px rgba(0,0,0,0.6)',
+          boxShadow: '-1px 0 4px rgba(0,0,0,0.5)',
         }}
       />
 
-      {/* ── Right power button ─────────────────────────────────────── */}
-      <PhysicalButton
+      {/* Corner bracket tabs — top edge */}
+      <Btn
+        hidden={!isSingle}
         style={{
-          right: -d.powerButtonWidth,
-          top: 170,
-          width: d.powerButtonWidth,
-          height: d.powerButtonHeight,
+          top: -1,
+          left: r - 4,
+          width: 20,
+          height: 4,
+          borderRadius: '0 0 2px 2px',
+          boxShadow: '0 -1px 3px rgba(0,0,0,0.4)',
+        }}
+      />
+      <Btn
+        hidden={!isSingle}
+        style={{
+          top: -1,
+          right: r - 4,
+          width: 20,
+          height: 4,
+          borderRadius: '0 0 2px 2px',
+          boxShadow: '0 -1px 3px rgba(0,0,0,0.4)',
+        }}
+      />
+
+      {/* Corner bracket tabs — bottom edge */}
+      <Btn
+        hidden={!isSingle}
+        style={{
+          bottom: -1,
+          left: r - 4,
+          width: 20,
+          height: 4,
+          borderRadius: '2px 2px 0 0',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.4)',
+        }}
+      />
+      <Btn
+        hidden={!isSingle}
+        style={{
+          bottom: -1,
+          right: r - 4,
+          width: 20,
+          height: 4,
+          borderRadius: '2px 2px 0 0',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.4)',
+        }}
+      />
+
+      {/* Right-edge hinge nubs */}
+      <Btn
+        hidden={!isSingle}
+        style={{
+          right: -6,
+          top: r + 4,
+          width: 6,
+          height: 28,
+          borderRadius: '0 3px 3px 0',
+          boxShadow: '2px 0 5px rgba(0,0,0,0.5)',
+        }}
+      />
+      <Btn
+        hidden={!isSingle}
+        style={{
+          right: -6,
+          bottom: r + 4,
+          width: 6,
+          height: 28,
+          borderRadius: '0 3px 3px 0',
+          boxShadow: '2px 0 5px rgba(0,0,0,0.5)',
+        }}
+      />
+
+      {/* ── Extended Mode Buttons ────────────────────────────────────── */}
+      
+      {/* Top-edge: Volume Up */}
+      <Btn
+        hidden={isSingle}
+        style={{
+          top: -4,
+          right: 160,
+          width: 44,
+          height: 4,
+          borderRadius: '2px 2px 0 0',
+          boxShadow: '0 -1px 4px rgba(0,0,0,0.5)',
+        }}
+      />
+      {/* Top-edge: Volume Down */}
+      <Btn
+        hidden={isSingle}
+        style={{
+          top: -4,
+          right: 160 - 44 - 12,
+          width: 44,
+          height: 4,
+          borderRadius: '2px 2px 0 0',
+          boxShadow: '0 -1px 4px rgba(0,0,0,0.5)',
+        }}
+      />
+
+      {/* Right edge: Side button */}
+      <Btn
+        hidden={isSingle}
+        style={{
+          right: -4,
+          top: 110,
+          width: 4,
+          height: 60,
           borderRadius: '0 2px 2px 0',
-          background: 'linear-gradient(270deg, #090D1A 0%, #182036 100%)',
-          boxShadow: '1px 0 3px rgba(0,0,0,0.6)',
+          boxShadow: '1px 0 4px rgba(0,0,0,0.5)',
+        }}
+      />
+      {/* Right edge: Camera Control */}
+      <Btn
+        hidden={isSingle}
+        style={{
+          right: -4,
+          top: 110 + 60 + 16,
+          width: 4,
+          height: 40,
+          borderRadius: '0 2px 2px 0',
+          boxShadow: '1px 0 4px rgba(0,0,0,0.5)',
         }}
       />
 
-      {/* ── Screen area (clips content to the bezel boundary) ─────── */}
+      {/* ── Screen ───────────────────────────────────────────────────── */}
+      {/* 
+        This is the most critical part: the screen container stays in the exact 
+        same React tree position so the iframe inside `children` never unmounts. 
+      */}
       <div
         style={{
           position: 'absolute',
-          top: d.bezelTop,
-          left: d.bezelSide,
-          width: innerWidth,
-          height: d.screenHeight,
-          borderRadius: d.innerRadius,
+          top: d.bezel,
+          left: d.bezel,
+          width: dims.viewportWidth,
+          height: dims.viewportHeight,
+          borderRadius: r - d.bezel, // inner radius = outer minus bezel = 8px
           overflow: 'hidden',
           background: '#000',
-          display: 'flex',
-          flexDirection: 'row',
+          isolation: 'isolate',
+          // Ensure scrolling on iOS/mobile devices works smoothly inside iframes
+          WebkitOverflowScrolling: 'touch',
         }}
       >
-        {mode === 'single' ? (
-          <>
-            {/* Main screen */}
-            <div
-              style={{
-                width: d.screenWidth,
-                height: d.screenHeight,
-                flexShrink: 0,
-                overflow: 'hidden',
-                position: 'relative',
-              }}
-            >
-              {children}
-            </div>
-            <HingeStrip />
-            <SidePanel />
-          </>
-        ) : (
-          /* Extended: iframe spans full combined width, hinge is overlaid */
-          <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-            {children}
-
-            {/* Non-interactive hinge overlay — sits on top of iframe */}
-            <div
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: d.screenWidth,
-                width: d.hingeWidth,
-                height: '100%',
-                background: HINGE_BG,
-                pointerEvents: 'none',
-                zIndex: 10,
-              }}
-            >
-              <div style={HINGE_HIGHLIGHT} />
-            </div>
-          </div>
-        )}
+        {children}
       </div>
-
-      {/* ── Dynamic Island ────────────────────────────────────────── */}
-      <div
-        style={{
-          position: 'absolute',
-          top: d.bezelTop + 12,
-          // Centre over the main display in both modes
-          left:
-            d.bezelSide +
-            (mode === 'single'
-              ? d.screenWidth / 2 - d.islandWidth / 2
-              : (d.screenWidth * 2 + d.hingeWidth) / 2 - d.islandWidth / 2),
-          width: d.islandWidth,
-          height: d.islandHeight,
-          background: '#000',
-          borderRadius: d.islandRadius,
-          pointerEvents: 'none',
-          zIndex: 20,
-        }}
-      />
-
-      {/* ── Bottom home indicator bar ─────────────────────────────── */}
-      <div
-        style={{
-          position: 'absolute',
-          bottom: 10,
-          left: '50%',
-          transform: 'translateX(-50%)',
-          width: 126,
-          height: 5,
-          background: 'rgba(255,255,255,0.28)',
-          borderRadius: 3,
-          pointerEvents: 'none',
-        }}
-      />
     </div>
   );
-}
-
-/** Thin absolutely-positioned element that mimics a physical side button */
-function PhysicalButton({ style }: { style: CSSProperties }) {
-  return <div style={{ position: 'absolute', ...style }} />;
 }

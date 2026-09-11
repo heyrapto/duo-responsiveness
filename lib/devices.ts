@@ -1,8 +1,10 @@
 /**
  * iPhone Duo — central device configuration.
  *
- * All CSS pixel values are declared here so the device simulation can be
- * adjusted from one place without hunting through component files.
+ * Values derived from the official Apple Store specification page.
+ * See docs/iphone-duo-specs.md for full detail.
+ *
+ * CSS viewport dimensions use the standard 3× Retina scale factor.
  */
 
 export type DisplayMode = 'single' | 'extended';
@@ -10,72 +12,106 @@ export type DisplayMode = 'single' | 'extended';
 export const DEVICE = {
   name: 'iPhone Duo',
 
-  // ── Screen viewport (what the embedded website "sees") ──────────────
-  screenWidth: 390,  // CSS px – per panel
-  screenHeight: 844, // CSS px
+  // ── Outer / Cover display  (Single mode — device closed, portrait) ─────
+  outerDisplay: {
+    diagonal: 5.4,
+    physicalWidth: 1398,
+    physicalHeight: 2034,
+    ppi: 460,
+    scaleFactor: 3,
+    cssWidth: 466,   // 1398 ÷ 3
+    cssHeight: 678,  // 2034 ÷ 3
+    type: 'Super Retina XDR OLED',
+  },
 
-  // ── Physical device shell ────────────────────────────────────────────
-  bezelTop: 54,       // top bezel height (includes Dynamic Island area)
-  bezelBottom: 34,    // bottom bezel (home indicator area)
-  bezelSide: 10,      // left and right outer shell width
-  hingeWidth: 14,     // physical fold/hinge between the two displays
-  borderRadius: 44,   // outer corner radius
-  innerRadius: 34,    // inner screen corner radius
+  // ── Inner / Main display  (Extended mode — device open, landscape) ─────
+  innerDisplay: {
+    diagonal: 7.6,
+    physicalWidth: 1878,
+    physicalHeight: 2670,
+    ppi: 430,
+    scaleFactor: 3,
+    cssWidth: 890,   // 2670 ÷ 3  (portrait height → landscape width)
+    cssHeight: 626,  // 1878 ÷ 3  (portrait width → landscape height)
+    type: 'Super Retina XDR OLED folding, Nano-texture, Wide-angle OLEDs',
+  },
 
-  // ── Decorative side action panel (single mode only) ──────────────────
-  sidePanelWidth: 74,
+  // ── Bezels ────────────────────────────────────────────────────────────
+  // Both modes use thin, uniform bezels matching the reference diagrams.
+  // The single mode has NO thick top bezel — the outer cover display has no
+  // Dynamic Island or notch; it uses the same thin bezel on all four sides.
+  bezel: 10, // px — uniform for all sides and both modes
 
-  // ── Dynamic Island ───────────────────────────────────────────────────
-  islandWidth: 120,
-  islandHeight: 36,
-  islandRadius: 20,
+  // ── Corner radii ─────────────────────────────────────────────────────
+  // Single (portrait, outer cover display):
+  //   Left side corners are rounded; right side is near-square — that's the
+  //   fold/hinge edge that connects to the inner display when open.
+  singleRadius: {
+    topLeft: 18,
+    topRight: 6,
+    bottomRight: 6,
+    bottomLeft: 18,
+  },
+  // Screen inner radii match (outer radius - bezel)
+  singleScreenRadius: {
+    topLeft: 10,
+    topRight: 0,
+    bottomRight: 0,
+    bottomLeft: 10,
+  },
 
-  // ── Physical buttons (decorative, rendered as CSS shapes) ────────────
-  volumeButtonWidth: 4,
-  volumeButtonHeight: 46,
-  powerButtonWidth: 4,
-  powerButtonHeight: 68,
+  // Extended (landscape, inner display):
+  //   All corners uniformly rounded since both halves unfold symmetrically.
+  extendedRadius: 18,
+  extendedScreenRadius: 10,
+
+  // ── Hinge joint nubs (single mode, right side) ────────────────────────
+  // Small rectangular protrusions on the right edge of the cover display
+  // showing where the fold mechanism connects.
+  hingeJoint: {
+    width: 4,
+    height: 14,
+    insetFromCorner: 18, // distance from the right-side corner
+  },
+
+  // ── Physical buttons ─────────────────────────────────────────────────
+  btn: {
+    volumeW: 4,
+    volumeH: 44,
+    sideW: 4,
+    sideH: 60,
+    cameraControlW: 4,
+    cameraControlH: 40,
+    // Extended mode top-edge volume buttons
+    volumeTopW: 44,
+    volumeTopH: 4,
+  },
 } as const;
 
 export interface DeviceDimensions {
-  /** Total pixel width of the outer device shell */
   totalWidth: number;
-  /** Total pixel height of the outer device shell */
   totalHeight: number;
-  /** Width the embedded website experiences (iframe width) */
   viewportWidth: number;
-  /** Height the embedded website experiences (iframe height) */
   viewportHeight: number;
 }
 
-/**
- * Returns the outer device shell size and the iframe viewport size for a
- * given display mode.
- *
- * Single  → one screen + decorative side panel
- * Extended → both screens side-by-side; combined viewport width
- */
 export function getDeviceDimensions(mode: DisplayMode): DeviceDimensions {
   const d = DEVICE;
+  const b = d.bezel;
 
   if (mode === 'single') {
     return {
-      totalWidth:
-        d.bezelSide + d.screenWidth + d.hingeWidth + d.sidePanelWidth + d.bezelSide,
-      totalHeight: d.bezelTop + d.screenHeight + d.bezelBottom,
-      viewportWidth: d.screenWidth,
-      viewportHeight: d.screenHeight,
+      totalWidth:  b + d.outerDisplay.cssWidth  + b,
+      totalHeight: b + d.outerDisplay.cssHeight + b,
+      viewportWidth:  d.outerDisplay.cssWidth,
+      viewportHeight: d.outerDisplay.cssHeight,
     };
   }
 
-  // Extended: both screens open, iframe spans the full combined width.
-  // The physical hinge is overlaid on top of the iframe so the website
-  // still renders at the full 794 px wide viewport.
   return {
-    totalWidth:
-      d.bezelSide + d.screenWidth + d.hingeWidth + d.screenWidth + d.bezelSide,
-    totalHeight: d.bezelTop + d.screenHeight + d.bezelBottom,
-    viewportWidth: d.screenWidth * 2 + d.hingeWidth, // 794 px
-    viewportHeight: d.screenHeight,
+    totalWidth:  b + d.innerDisplay.cssWidth  + b,
+    totalHeight: b + d.innerDisplay.cssHeight + b,
+    viewportWidth:  d.innerDisplay.cssWidth,
+    viewportHeight: d.innerDisplay.cssHeight,
   };
 }
