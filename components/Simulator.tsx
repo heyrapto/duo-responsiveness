@@ -146,18 +146,7 @@ export default function Simulator({ url }: SimulatorProps) {
     setIsUrlLoading(false);
     setEmbedError(true);
     setShowLoadError(true);
-
-    const fallbackUrl =
-      lastSuccessfulUrlRef.current ?? sessionStorage.getItem('duo-last-successful-url');
-    const recoveryUrl = fallbackUrl && fallbackUrl !== url ? fallbackUrl : null;
-    const timeout = setTimeout(() => {
-      setShowLoadError(false);
-      router.replace(
-        recoveryUrl ? `/test?url=${encodeURIComponent(recoveryUrl)}` : '/',
-      );
-    }, 4500); // Increased timeout so they can read the message
-    timersRef.current.push(timeout);
-  }, [router, showLoadError, url]);
+  }, [showLoadError]);
 
   const handleLoad = useCallback(() => {
     if (embedError) return; // already failed the server check
@@ -474,12 +463,19 @@ export default function Simulator({ url }: SimulatorProps) {
               <FiX aria-hidden />
             </button>
             <FiAlertTriangle className="mx-auto mb-4 h-9 w-9 text-amber-500" aria-hidden />
-            <h2 id="load-error-title" className="text-base font-semibold text-zinc-900">
+            <h2 id="load-error-title" className="text-base font-semibold text-zinc-900 mb-6">
               This website doesn&apos;t allow embedded previews.
             </h2>
-            <p className="mt-2 text-sm leading-6 text-zinc-500">
-              Returning to the previous website...
-            </p>
+            <button
+              type="button"
+              onClick={() => {
+                setShowLoadError(false);
+                setEditingUrl(true);
+              }}
+              className="w-full h-11 rounded-xl bg-zinc-900 text-white font-medium hover:bg-zinc-800 transition-colors"
+            >
+              Try another one
+            </button>
           </div>
         </div>
       )}
