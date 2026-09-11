@@ -12,25 +12,12 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-poppins), system-ui, sans-serif;
 }
 
-/* ── iPhone Duo device animations ──────────────────────────────────────── */
-
-/**
- * hingeGleam — a brief bright streak at the fold crease simulating light
- * reflecting off the physical hinge as the device opens or closes.
- */
 @keyframes hingeGleam {
   0%   { opacity: 0;   transform: translateX(-50%) scaleX(1);   }
   25%  { opacity: 1;   transform: translateX(-50%) scaleX(1);   }
