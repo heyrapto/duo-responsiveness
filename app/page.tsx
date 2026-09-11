@@ -1,4 +1,5 @@
 import UrlInput from '@/components/UrlInput';
+import { FiColumns } from 'react-icons/fi';
 
 export default function Home() {
   return (
@@ -12,53 +13,7 @@ export default function Home() {
             aria-hidden
           >
             {/* Two-panel icon representing the dual display */}
-            <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
-              <rect
-                x="2"
-                y="4"
-                width="10"
-                height="20"
-                rx="2.5"
-                stroke="white"
-                strokeWidth="1.6"
-              />
-              <rect
-                x="16"
-                y="4"
-                width="10"
-                height="20"
-                rx="2.5"
-                stroke="white"
-                strokeWidth="1.6"
-              />
-              <line
-                x1="13"
-                y1="9"
-                x2="15"
-                y2="9"
-                stroke="white"
-                strokeWidth="1.6"
-                strokeLinecap="round"
-              />
-              <line
-                x1="13"
-                y1="14"
-                x2="15"
-                y2="14"
-                stroke="white"
-                strokeWidth="1.6"
-                strokeLinecap="round"
-              />
-              <line
-                x1="13"
-                y1="19"
-                x2="15"
-                y2="19"
-                stroke="white"
-                strokeWidth="1.6"
-                strokeLinecap="round"
-              />
-            </svg>
+            <FiColumns className="h-7 w-7 text-white" aria-hidden />
           </div>
 
           <div className="flex flex-col items-center gap-2">

@@ -19,11 +19,12 @@ import {
   useEffect,
   useCallback,
   type SyntheticEvent,
-  type FormEvent,
+  type SubmitEvent,
   type KeyboardEvent,
 } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { FiAlertTriangle, FiArrowLeft, FiGlobe, FiLoader, FiRefreshCw, FiX } from 'react-icons/fi';
 import DeviceFrame from './DeviceFrame';
 import DisplayToggle from './DisplayToggle';
 import { type DisplayMode, getDeviceDimensions } from '@/lib/devices';
@@ -71,6 +72,7 @@ export default function Simulator({ url }: SimulatorProps) {
   const [mode, setMode] = useState<DisplayMode>('single');
   const [iframeKey, setIframeKey] = useState(0);
   const [embedError, setEmbedError] = useState(false);
+  const [showLoadError, setShowLoadError] = useState(false);
   const [autoScale, setAutoScale] = useState(1);
   const [anim, setAnim] = useState<AnimValues>(ANIM_IDLE);
   const [isUrlLoading, setIsUrlLoading] = useState(true);
@@ -84,6 +86,7 @@ export default function Simulator({ url }: SimulatorProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const animatingRef = useRef(false);
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const lastSuccessfulUrlRef = useRef<string | null>(null);
 
   const dims = getDeviceDimensions(mode);
 
@@ -125,7 +128,24 @@ export default function Simulator({ url }: SimulatorProps) {
   }, [url, iframeKey]);
 
   // ── Iframe load handler ──────────────────────────────────────────────────
-  const handleLoad = useCallback((_e: SyntheticEvent<HTMLIFrameElement>) => {
+  const handleEmbedFailure = useCallback(() => {
+    if (showLoadError) return;
+    setIsUrlLoading(false);
+    setEmbedError(true);
+    setShowLoadError(true);
+
+    const fallbackUrl =
+      lastSuccessfulUrlRef.current ?? sessionStorage.getItem('duo-last-successful-url');
+    const recoveryUrl = fallbackUrl && fallbackUrl !== url ? fallbackUrl : null;
+    const timeout = setTimeout(() => {
+      router.replace(
+        recoveryUrl ? `/test?url=${encodeURIComponent(recoveryUrl)}` : '/',
+      );
+    }, 700);
+    timersRef.current.push(timeout);
+  }, [router, showLoadError]);
+
+  const handleLoad = useCallback(() => {
     setIsUrlLoading(false);
     const frame = iframeRef.current;
     if (!frame) return;
@@ -133,12 +153,17 @@ export default function Simulator({ url }: SimulatorProps) {
       const doc = frame.contentDocument;
       if (doc) {
         const len = doc.body?.innerHTML?.length ?? 0;
-        if (len === 0) setEmbedError(true);
+        if (len === 0) {
+          handleEmbedFailure();
+          return;
+        }
       }
     } catch {
       // SecurityError → cross-origin, loaded fine
     }
-  }, []);
+    lastSuccessfulUrlRef.current = url;
+    sessionStorage.setItem('duo-last-successful-url', url);
+  }, [handleEmbedFailure, url]);
 
   // ── Refresh ──────────────────────────────────────────────────────────────
   const handleRefresh = useCallback(() => {
@@ -158,7 +183,7 @@ export default function Simulator({ url }: SimulatorProps) {
     router.push(`/test?url=${encodeURIComponent(normalized)}`);
   }
 
-  function handleUrlSubmit(e: FormEvent) {
+  function handleUrlSubmit(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
     submitUrl(urlDraft);
   }
@@ -329,13 +354,20 @@ export default function Simulator({ url }: SimulatorProps) {
           >
             <DeviceFrame mode={mode}>
               {embedError ? (
-                <EmbedErrorScreen dims={dims} />
+                <div
+                  style={{
+                    width: dims.viewportWidth,
+                    height: dims.viewportHeight,
+                    background: '#f4f4f5',
+                  }}
+                />
               ) : (
                 <iframe
                   key={iframeKey}
                   ref={iframeRef}
                   src={url}
                   onLoad={handleLoad}
+                  onError={handleEmbedFailure}
                   title="Website Preview"
                   style={{
                     width: dims.viewportWidth,
@@ -382,10 +414,7 @@ export default function Simulator({ url }: SimulatorProps) {
                     borderRadius: 'inherit',
                   }}
                 >
-                  <svg className="animate-spin h-8 w-8 text-zinc-800" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
+                  <FiLoader className="animate-spin h-8 w-8 text-zinc-800" aria-hidden />
                 </div>
               )}
 
@@ -412,73 +441,45 @@ export default function Simulator({ url }: SimulatorProps) {
           </div>
         </div>
       </div>
-    </div>
-  );
-}
 
-// ─── Small presentational helpers ─────────────────────────────────────────
-
-function EmbedErrorScreen({
-  dims,
-}: {
-  dims: ReturnType<typeof getDeviceDimensions>;
-}) {
-  return (
-    <div
-      style={{
-        width: dims.viewportWidth,
-        height: dims.viewportHeight,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: '#f4f4f5',
-        gap: 14,
-        padding: 32,
-        textAlign: 'center',
-      }}
-    >
-      <span style={{ fontSize: 36 }}>🚫</span>
-      <p
-        style={{
-          fontSize: 14,
-          lineHeight: 1.6,
-          color: '#52525b',
-          fontFamily: 'system-ui, -apple-system, sans-serif',
-          maxWidth: 260,
-        }}
-      >
-        This website doesn&apos;t allow embedded previews.
-      </p>
+      {showLoadError && (
+        <div
+          role="alertdialog"
+          aria-modal="true"
+          aria-labelledby="load-error-title"
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-zinc-950/35 px-6 backdrop-blur-sm"
+        >
+          <div className="relative w-full max-w-sm rounded-2xl bg-white p-6 text-center shadow-2xl">
+            <button
+              type="button"
+              onClick={() => setShowLoadError(false)}
+              className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-lg text-zinc-400 hover:bg-zinc-100 hover:text-zinc-900"
+              aria-label="Dismiss error"
+            >
+              <FiX aria-hidden />
+            </button>
+            <FiAlertTriangle className="mx-auto mb-4 h-9 w-9 text-amber-500" aria-hidden />
+            <h2 id="load-error-title" className="text-base font-semibold text-zinc-900">
+              Unable to load this website
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-zinc-500">
+              Returning to the last website that loaded successfully.
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 function BackIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
-      <path d="M10 12L6 8L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
+  return <FiArrowLeft aria-hidden />;
 }
 
 function GlobeIcon() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className="shrink-0 text-zinc-400" aria-hidden>
-      <circle cx="6" cy="6" r="5" stroke="currentColor" strokeWidth="1.2" />
-      <path d="M6 1c0 0-2 2.5-2 5s2 5 2 5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-      <path d="M6 1c0 0 2 2.5 2 5s-2 5-2 5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-      <path d="M1 6h10" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-      <path d="M1.5 4h9M1.5 8h9" stroke="currentColor" strokeWidth="1" strokeLinecap="round" />
-    </svg>
-  );
+  return <FiGlobe className="shrink-0 text-zinc-400" aria-hidden />;
 }
 
 function RefreshIcon() {
-  return (
-    <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden>
-      <path d="M13.5 7.5a6 6 0 1 1-1.757-4.243" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-      <path d="M13.5 2.5v3h-3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
+  return <FiRefreshCw aria-hidden />;
 }
