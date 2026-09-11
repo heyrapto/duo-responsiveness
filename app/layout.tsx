@@ -25,13 +25,16 @@ export const metadata: Metadata = {
     'Test any website inside a realistic iPhone Duo device frame. Preview in Single or Extended display mode, fully interactive.',
 };
 
-export default function RootLayout({ children }: LayoutProps<'/'>) {
+import Navbar from '@/components/Navbar';
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html
       lang="en"
       className={`${poppins.variable} ${geistMono.variable} ${caveat.variable} h-full antialiased`}
     >
-      <body className="h-full flex flex-col bg-white" style={{ fontFamily: 'var(--font-poppins)' }}>
+      <body className="h-full flex flex-col bg-zinc-50" style={{ fontFamily: 'var(--font-poppins)' }}>
+        {/* <Navbar /> */}
         {children}
       </body>
     </html>

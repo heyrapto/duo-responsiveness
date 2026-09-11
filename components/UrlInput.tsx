@@ -52,8 +52,8 @@ export default function UrlInput() {
       <div className="flex gap-2 w-full">
         <input
           type="text"
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
+          value={url.toLowerCase()}
+          onChange={(e) => setUrl(e.target.value.toLowerCase())}
           placeholder="example.com"
           disabled={isLoading}
           className="flex-1 h-12 px-4 rounded-xl border border-zinc-200 bg-white text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-900 text-base min-w-0 disabled:opacity-50"

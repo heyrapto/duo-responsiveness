@@ -28,6 +28,7 @@ import { FiAlertTriangle, FiArrowLeft, FiGlobe, FiLoader, FiRefreshCw, FiX } fro
 import DeviceFrame from './DeviceFrame';
 import DisplayToggle from './DisplayToggle';
 import { type DisplayMode, getDeviceDimensions } from '@/lib/devices';
+import { checkEmbeddable } from '@/app/actions';
 
 interface SimulatorProps {
   url: string;
@@ -125,6 +126,18 @@ export default function Simulator({ url }: SimulatorProps) {
   useEffect(() => {
     setEmbedError(false);
     setIsUrlLoading(true);
+    let active = true;
+
+    checkEmbeddable(url).then((canEmbed) => {
+      if (!active) return;
+      if (!canEmbed) {
+        handleEmbedFailure();
+      }
+    });
+
+    return () => {
+      active = false;
+    };
   }, [url, iframeKey]);
 
   // ── Iframe load handler ──────────────────────────────────────────────────
@@ -138,14 +151,16 @@ export default function Simulator({ url }: SimulatorProps) {
       lastSuccessfulUrlRef.current ?? sessionStorage.getItem('duo-last-successful-url');
     const recoveryUrl = fallbackUrl && fallbackUrl !== url ? fallbackUrl : null;
     const timeout = setTimeout(() => {
+      setShowLoadError(false);
       router.replace(
         recoveryUrl ? `/test?url=${encodeURIComponent(recoveryUrl)}` : '/',
       );
-    }, 700);
+    }, 4500); // Increased timeout so they can read the message
     timersRef.current.push(timeout);
-  }, [router, showLoadError]);
+  }, [router, showLoadError, url]);
 
   const handleLoad = useCallback(() => {
+    if (embedError) return; // already failed the server check
     setIsUrlLoading(false);
     const frame = iframeRef.current;
     if (!frame) return;
@@ -163,7 +178,7 @@ export default function Simulator({ url }: SimulatorProps) {
     }
     lastSuccessfulUrlRef.current = url;
     sessionStorage.setItem('duo-last-successful-url', url);
-  }, [handleEmbedFailure, url]);
+  }, [handleEmbedFailure, url, embedError]);
 
   // ── Refresh ──────────────────────────────────────────────────────────────
   const handleRefresh = useCallback(() => {
@@ -277,8 +292,8 @@ export default function Simulator({ url }: SimulatorProps) {
               <input
                 ref={urlInputRef}
                 type="text"
-                value={urlDraft}
-                onChange={(e) => setUrlDraft(e.target.value)}
+                value={urlDraft.toLowerCase()}
+                onChange={(e) => setUrlDraft(e.target.value.toLowerCase())}
                 onBlur={() => submitUrl(urlDraft)}
                 onKeyDown={handleUrlKeyDown}
                 placeholder="example.com"
@@ -292,7 +307,7 @@ export default function Simulator({ url }: SimulatorProps) {
             <button
               type="button"
               onClick={() => {
-                setUrlDraft(displayUrl(url));
+                setUrlDraft(displayUrl(url).toLowerCase());
                 setEditingUrl(true);
               }}
               className="flex items-center gap-1.5 w-full h-8 px-3 rounded-lg bg-zinc-100 hover:bg-zinc-200 transition-colors text-left group"
@@ -300,7 +315,7 @@ export default function Simulator({ url }: SimulatorProps) {
             >
               <GlobeIcon />
               <span className="text-xs text-zinc-600 truncate font-mono leading-none group-hover:text-zinc-900 transition-colors">
-                {displayUrl(url)}
+                {displayUrl(url).toLowerCase()}
               </span>
             </button>
           )}
@@ -460,10 +475,10 @@ export default function Simulator({ url }: SimulatorProps) {
             </button>
             <FiAlertTriangle className="mx-auto mb-4 h-9 w-9 text-amber-500" aria-hidden />
             <h2 id="load-error-title" className="text-base font-semibold text-zinc-900">
-              Unable to load this website
+              This website doesn&apos;t allow embedded previews.
             </h2>
             <p className="mt-2 text-sm leading-6 text-zinc-500">
-              Returning to the last website that loaded successfully.
+              Returning to the previous website...
             </p>
           </div>
         </div>
