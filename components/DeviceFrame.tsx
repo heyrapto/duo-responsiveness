@@ -44,32 +44,14 @@ export default function DeviceFrame({ mode, children }: DeviceFrameProps) {
           aria-hidden
           style={{
             position: 'absolute',
-            top: 24,
-            right: 24,
+            top: 35,
+            right: 35,
             width: 14,
             height: 14,
             borderRadius: '50%',
             background: '#050505',
             boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.8), 0 1px 0 rgba(255,255,255,0.05)',
             zIndex: 10,
-          }}
-        />
-      )}
-
-      {/* ── Extended Mode: Vertical Hinge Crease ─────────────────────────── */}
-      {!isSingle && (
-        <div
-          aria-hidden
-          style={{
-            position: 'absolute',
-            top: 0,
-            bottom: 0,
-            left: '50%',
-            width: 2,
-            transform: 'translateX(-50%)',
-            background: 'linear-gradient(90deg, transparent 0%, rgba(0,0,0,0.6) 50%, transparent 100%)',
-            zIndex: 10,
-            pointerEvents: 'none',
           }}
         />
       )}
